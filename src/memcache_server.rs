@@ -139,14 +139,14 @@ impl MemcacheServer {
                                             None => (),
                                         };
                                         if let Err(_e) =
-                                        connection.write_frame("END".as_bytes()).await
+                                            connection.write_frame("END".as_bytes()).await
                                         {
                                             break;
                                         }
                                     }
                                     Cmd::CmdVersion => {
                                         if let Err(_e) =
-                                        connection.write_frame("VERSION 0.1.0".as_bytes()).await
+                                            connection.write_frame("VERSION 0.1.0".as_bytes()).await
                                         {
                                             break;
                                         }
@@ -157,8 +157,8 @@ impl MemcacheServer {
                             Err(e) => {
                                 debug!("parse error: {}", e.to_string());
                                 if let Err(write_e) =
-                                // Override error as "ERROR" for cmd parsing error
-                                connection.write_frame(b"ERROR").await
+                                    // Override error as "ERROR" for cmd parsing error
+                                    connection.write_frame(b"ERROR").await
                                 {
                                     info!("write_frame error: {}", write_e.to_string());
                                     break;
@@ -195,8 +195,8 @@ impl Connection {
     }
 
     pub async fn read_frame<F, T>(&mut self, func: F) -> io::Result<T>
-        where
-            F: Fn(&[u8]) -> T,
+    where
+        F: Fn(&[u8]) -> T,
     {
         loop {
             trace!("read_frame_loop");

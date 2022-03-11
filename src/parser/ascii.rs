@@ -27,12 +27,11 @@ pub(crate) fn parse_ascii_cmd(buf: &[u8]) -> IResult<&[u8], Cmd> {
         return Err(nom::Err::Error(Error::new(buf, ErrorKind::Eof)));
     }
 
-    let (buf, c) =
-        alt((
-            value("set".to_string(), tag_no_case(b"set")),
-            value("get".to_string(), tag_no_case(b"get")),
-            value("version".to_string(), tag_no_case(b"version")),
-        ))(buf)?;
+    let (buf, c) = alt((
+        value("set".to_string(), tag_no_case(b"set")),
+        value("get".to_string(), tag_no_case(b"get")),
+        value("version".to_string(), tag_no_case(b"version")),
+    ))(buf)?;
 
     match c.as_str() {
         "set" => {
@@ -48,7 +47,7 @@ pub(crate) fn parse_ascii_cmd(buf: &[u8]) -> IResult<&[u8], Cmd> {
                 tag(" "),
                 parse_ascii_u32, // len
                 opt(tag(" ")),
-                opt(alt((value(true, tag_no_case(b"noreply")), ))),
+                opt(alt((value(true, tag_no_case(b"noreply")),))),
                 crlf,
             ))(buf)?;
             Ok((
@@ -69,10 +68,7 @@ pub(crate) fn parse_ascii_cmd(buf: &[u8]) -> IResult<&[u8], Cmd> {
         }
         "version" => {
             let (buf, _) = crlf(buf)?;
-            Ok((
-                buf,
-                Cmd::CmdVersion,
-            ))
+            Ok((buf, Cmd::CmdVersion))
         }
         _ => {
             panic!("not possible")
