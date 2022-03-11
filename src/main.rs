@@ -12,9 +12,9 @@ use std::time::Duration;
 
 use kv_cache::Cache;
 
-const EXPIRE_DURATION: Duration = Duration::from_secs(20);
+const EXPIRE_DURATION: Duration = Duration::from_secs(3600);
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 8)]
 async fn main() {
     env_logger::init();
 
