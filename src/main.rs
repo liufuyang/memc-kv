@@ -1,5 +1,7 @@
 #![feature(io_error_more)]
 
+extern crate core;
+
 mod http_server;
 mod memcache_server;
 mod metrics;

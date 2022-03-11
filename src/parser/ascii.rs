@@ -27,42 +27,55 @@ pub(crate) fn parse_ascii_cmd(buf: &[u8]) -> IResult<&[u8], Cmd> {
         return Err(nom::Err::Error(Error::new(buf, ErrorKind::Eof)));
     }
 
-    let (buf, (c, _)) = tuple((
+    let (buf, c) =
         alt((
             value("set".to_string(), tag_no_case(b"set")),
             value("get".to_string(), tag_no_case(b"get")),
-        )),
-        tag(" "),
-    ))(buf)?;
-
-    if c.eq("set") {
-        let (buf, (key, _, flag, _, ttl, _, len, _, noreply, _)) = tuple((
-            // VALUE key flags data_len [cas id]\r\n
-            // data block\r\n
-            take_while1(is_key_char),
-            tag(" "),
-            parse_ascii_u32, // flag
-            tag(" "),
-            parse_ascii_u32, // ttl
-            tag(" "),
-            parse_ascii_u32, // len
-            opt(tag(" ")),
-            opt(alt((value(true, tag_no_case(b"noreply")),))),
-            crlf,
+            value("version".to_string(), tag_no_case(b"version")),
         ))(buf)?;
-        Ok((
-            buf,
-            Cmd::CmdSet {
-                key: key.to_vec(),
-                flag,
-                ttl,
-                len,
-                noreply,
-            },
-        ))
-    } else {
-        // get cmd
-        let (buf, (key, _)) = tuple((take_while1(is_key_char), crlf))(buf)?;
-        Ok((buf, Cmd::CmdGet { key: key.to_vec() }))
+
+    match c.as_str() {
+        "set" => {
+            let (buf, (_, key, _, flag, _, ttl, _, len, _, noreply, _)) = tuple((
+                // VALUE key flags data_len [cas id]\r\n
+                // data block\r\n
+                tag(" "),
+                take_while1(is_key_char),
+                tag(" "),
+                parse_ascii_u32, // flag
+                tag(" "),
+                parse_ascii_u32, // ttl
+                tag(" "),
+                parse_ascii_u32, // len
+                opt(tag(" ")),
+                opt(alt((value(true, tag_no_case(b"noreply")), ))),
+                crlf,
+            ))(buf)?;
+            Ok((
+                buf,
+                Cmd::CmdSet {
+                    key: key.to_vec(),
+                    flag,
+                    ttl,
+                    len,
+                    noreply,
+                },
+            ))
+        }
+        "get" => {
+            // get cmd
+            let (buf, (_, key, _)) = tuple((tag(" "), take_while1(is_key_char), crlf))(buf)?;
+            Ok((buf, Cmd::CmdGet { key: key.to_vec() }))
+        }
+        "version" => {
+            let (buf, _) = crlf(buf)?;
+            Ok((
+                buf,
+                Cmd::CmdVersion,
+            ))
+        }
+        _ => {
+            panic!("not possible")
+        }
     }
 }

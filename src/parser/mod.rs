@@ -25,4 +25,6 @@ pub enum Cmd {
         /// The key.
         key: Vec<u8>,
     },
+
+    CmdVersion,
 }
