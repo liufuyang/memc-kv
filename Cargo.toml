@@ -1,0 +1,18 @@
+[package]
+name = "http-kv"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+
+[dependencies]
+kv_cache = { path = "kv_cache" }
+tokio = { version = "1", features = ["full"] }
+hyper = { version = "0.14.17", features = ["full"] }
+nom = "7.1.0"
+btoi = { version = "0.4.2", default-features = false }
+lazy_static = "1.4.0"
+prometheus = "0.13.0"
+log = "0.4"
+env_logger = "0.8.4"
