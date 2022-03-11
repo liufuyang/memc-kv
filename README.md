@@ -73,6 +73,10 @@ RUST_LOG=trace cargo run --release
 
 - [ ] Add a LRU (least recent update) eviction policy
 - [ ] Keep track the total key and value memory usage
+- [ ] Try out [flurry](https://docs.rs/flurry/latest/flurry/) as the internal HashMap
+- [ ] Supporting other memcached commands
+- [ ] Better error handling perhaps
+- [ ] Better organizing the code
 - [ ] Adding an HTTP server
 - [ ] Adding a gRPC server
 
@@ -121,6 +125,15 @@ Tests with large values `--data-size-range=4000-8000`
 |-------------|---------------------|----------:|----------:|----------:|---------------------:|------------------------------:|--------:|
 | `memc-kv`   | on M1 Max           |    28.0ms |    32.0ms |      9181 |                    8 |                          8/20 | 626.1MB |
 | `memcached` | on M1 Max           |    26.0ms |    32.0ms |     10306 |                    8 |                          8/20 | 655.7MB |
+
+Tests with key having large range `--data-size-range=32-25600`
+
+[TODO]
+
+| impl        | platform  | `set P99` | `get P99` | `ops/sec` | server thread number | test thread/connection number | memory |
+|-------------|-----------|----------:|----------:|----------:|---------------------:|------------------------------:|-------:|
+| `memc-kv`   | on M1 Max |     ?.0ms |     ?.0ms |         x |                    8 |                          8/20 |     MB |
+| `memcached` | on M1 Max |     ?.0ms |     ?.0ms |         x |                    8 |                          8/20 |     MB |
 
 <details>
   <summary><strong>memc-kv</strong> running locally on a Macbook Air M1</summary>
