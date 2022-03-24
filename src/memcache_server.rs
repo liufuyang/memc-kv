@@ -1,8 +1,10 @@
+use crate::metrics::METRIC_REQUEST_DURATION_MEMC;
 use crate::parser::ascii::parse_ascii_cmd;
 use crate::parser::Cmd;
 use kv_cache::Cache;
 use log::{debug, info, trace};
 use nom::AsBytes;
+use std::time::SystemTime;
 use tokio::io::Error;
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -41,8 +43,10 @@ impl MemcacheServer {
             let mut connection = Connection::new(socket);
             loop {
                 trace!("process loop");
+                let mut start_time = SystemTime::now();
                 let cmd_raw = connection
                     .read_frame(|frame| {
+                        start_time = SystemTime::now();
                         parse_ascii_cmd(frame)
                             .map(|r| r.1)
                             .map_err(|e| e.to_string())
@@ -95,6 +99,12 @@ impl MemcacheServer {
                                                         break;
                                                     }
                                                 }
+                                                let duration = SystemTime::now()
+                                                    .duration_since(start_time)
+                                                    .unwrap();
+                                                METRIC_REQUEST_DURATION_MEMC
+                                                    .with_label_values(&["set"])
+                                                    .observe(duration.as_secs_f64());
                                             }
                                             // read_frame error when reading a value
                                             Err(e) => {
@@ -143,6 +153,11 @@ impl MemcacheServer {
                                         {
                                             break;
                                         }
+                                        let duration =
+                                            SystemTime::now().duration_since(start_time).unwrap();
+                                        METRIC_REQUEST_DURATION_MEMC
+                                            .with_label_values(&["get"])
+                                            .observe(duration.as_secs_f64());
                                     }
                                     Cmd::CmdVersion => {
                                         if let Err(_e) =
@@ -194,9 +209,9 @@ impl Connection {
         }
     }
 
-    pub async fn read_frame<F, T>(&mut self, func: F) -> io::Result<T>
+    pub async fn read_frame<F, T>(&mut self, mut func: F) -> io::Result<T>
     where
-        F: Fn(&[u8]) -> T,
+        F: FnMut(&[u8]) -> T,
     {
         loop {
             trace!("read_frame_loop");
