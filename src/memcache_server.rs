@@ -220,7 +220,7 @@ impl Connection {
                 let end = self.cursor - 1;
 
                 for i in start..end {
-                    if &self.buffer[i..i + 1] == b"\r" && &self.buffer[i + 1..i + 2] == b"\n" {
+                    if &self.buffer[i..i + 2] == b"\r\n" {
                         // found \r\n, call func to parse frame for cmd or value
                         let result = func(&self.buffer[self.head..i + 2]);
                         if i + 1 == end {
