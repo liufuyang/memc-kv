@@ -7,7 +7,6 @@ mod memcache_server;
 mod metrics;
 mod parser;
 
-use log::LevelFilter;
 use std;
 use std::time::Duration;
 
@@ -17,7 +16,7 @@ const EXPIRE_DURATION: Duration = Duration::from_secs(3600);
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 8)]
 async fn main() {
-    env_logger::builder().filter_level(LevelFilter::Info).init();
+    env_logger::init();
 
     let cache = Cache::<Vec<u8>, Vec<u8>>::new(Some(EXPIRE_DURATION));
     let http_server = http_server::HttpServer::new(cache.clone());

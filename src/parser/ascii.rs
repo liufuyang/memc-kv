@@ -28,12 +28,12 @@ pub(crate) fn parse_ascii_cmd(buf: &[u8]) -> IResult<&[u8], Cmd> {
     }
 
     let (buf, c) = alt((
-        value("set".to_string(), tag_no_case(b"set")),
-        value("get".to_string(), tag_no_case(b"get")),
-        value("version".to_string(), tag_no_case(b"version")),
+        value("set", tag_no_case(b"set")),
+        value("get", tag_no_case(b"get")),
+        value("version", tag_no_case(b"version")),
     ))(buf)?;
 
-    match c.as_str() {
+    match c {
         "set" => {
             let (buf, (_, key, _, flag, _, ttl, _, len, _, noreply, _)) = tuple((
                 // VALUE key flags data_len [cas id]\r\n
