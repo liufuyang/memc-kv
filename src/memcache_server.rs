@@ -8,6 +8,8 @@ use std::time::SystemTime;
 use tokio::io::Error;
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
+use bytes::{Buf, BytesMut};
+use std::io::Cursor;
 
 pub struct MemcacheServer {
     cache: Cache<Vec<u8>, Vec<u8>>,
@@ -193,19 +195,15 @@ impl MemcacheServer {
 
 struct Connection {
     stream: TcpStream,
-    buffer: Vec<u8>,
-    cursor: usize,
-    head: usize,
+    buffer: BytesMut,
 }
 
 impl Connection {
     pub fn new(stream: TcpStream) -> Connection {
         Connection {
             stream,
-            // Allocate the buffer with 1kb of capacity. - 1024
-            buffer: vec![0; 1024],
-            cursor: 0,
-            head: 0,
+            // Allocate the buffer with 1kb of capacity. - 4096
+            buffer: BytesMut::with_capacity(4096),
         }
     }
 
@@ -215,57 +213,46 @@ impl Connection {
     {
         loop {
             trace!("read_frame_loop");
-            if self.cursor > 0 {
-                let start = self.head;
-                let end = self.cursor - 1;
+            let mut buf = Cursor::new(&self.buffer[..]);
 
-                for i in start..end {
-                    if &self.buffer[i..i + 2] == b"\r\n" {
+            // Scan the bytes directly
+            let start = buf.position() as usize;
+            // Scan to the second to last byte
+            let end = buf.get_ref().len();
+
+            if end >= start + 2 {
+                for i in start..end-1 {
+                    if &buf.get_ref()[i..i + 2] == b"\r\n" {
                         // found \r\n, call func to parse frame for cmd or value
-                        let result = func(&self.buffer[self.head..i + 2]);
-                        if i + 1 == end {
-                            // no extra behind cursor
-                            self.cursor = 0;
-                            self.head = 0;
-                        } else {
-                            // has extra stuff behind i+2
-                            self.head = i + 2;
-                        }
+                        let result = func(&buf.get_ref()[..i+2]);
+                        // We found a line, update the position to be *after* the \n
+                        self.buffer.advance(i + 2);
+                        // Return the line
                         return Ok(result);
                     }
                 }
                 // incomplete - maybe error or?
+                buf.set_position(end as u64)
             }
 
-            // Ensure the buffer has capacity
-            if self.buffer.len() == self.cursor {
-                let new_len = self.cursor * 2;
-                if new_len > 4096 * 1024 {
-                    // 4096 = Max 4kb input size
-                    self.cursor = 0;
-                    return Err(Error::from(io::ErrorKind::FileTooLarge));
-                }
-                trace!("read_frame_loop - buffer resize {}", new_len);
-                // Grow the buffer
-                self.buffer.resize(new_len, 0);
-            }
 
-            // Read into the buffer, tracking the number
-            // of bytes read
-            let n = self.stream.read(&mut self.buffer[self.cursor..]).await?;
-
-            if 0 == n {
-                if self.cursor == 0 {
+            // There is not enough buffered data to read a frame. Attempt to
+            // read more data from the socket.
+            //
+            // On success, the number of bytes is returned. `0` indicates "end
+            // of stream".
+            if 0 == self.stream.read_buf(&mut self.buffer).await? {
+                // The remote closed the connection. For this to be a clean
+                // shutdown, there should be no data in the read buffer. If
+                // there is, this means that the peer closed the socket while
+                // sending a frame.
+                if self.buffer.is_empty() {
                     return Err(Error::from(io::ErrorKind::ConnectionReset));
                 } else {
-                    // Maybe use a different error for this case?
-                    self.cursor = 0;
                     return Err(Error::from(io::ErrorKind::ConnectionReset));
                 }
-            } else {
-                // Update our cursor
-                self.cursor += n;
             }
+
             trace!("read_frame_loop - end");
         }
     }

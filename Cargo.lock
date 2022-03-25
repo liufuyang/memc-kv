@@ -290,6 +290,7 @@ name = "memc-kv"
 version = "0.1.0"
 dependencies = [
  "btoi",
+ "bytes",
  "env_logger",
  "hyper",
  "kv_cache",

@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 kv_cache = { path = "kv_cache" }
 tokio = { version = "1", features = ["full"] }
+bytes = "1.1.0"
 hyper = { version = "0.14.17", features = ["full"] }
 nom = "7.1.0"
 btoi = { version = "0.4.2", default-features = false }
